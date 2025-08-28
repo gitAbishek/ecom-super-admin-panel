@@ -34,30 +34,22 @@ export const useDeleteCampaign = () =>
 export const useGetAllCampaigns = ({
   page,
   limit,
-  campaignType,
-  isActive,
   search,
+  filters,
 }: {
   page: number;
   limit: number;
-  campaignType?: string;
-  isActive?: boolean;
   search?: string;
+  filters?: Record<string, unknown>;
 }) => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-  });
+  const searchParams = search ? `&search=${encodeURIComponent(search)}` : '';
+  const filterParams = filters ? `&filters=${encodeURIComponent(JSON.stringify(filters))}` : '';
   
-  if (campaignType) params.append('campaignType', campaignType);
-  if (isActive !== undefined) params.append('isActive', isActive.toString());
-  if (search) params.append('search', search);
-
   return useQuery({
-    queryKey: ["campaigns", page, limit, campaignType, isActive, search],
+    queryKey: ["campaigns", page, limit, search, filters],
     queryFn: () =>
       get({
-        url: `api/v1/campaigns/?${params.toString()}`,
+        url: `api/v1/campaigns/?page=${page}&limit=${limit}${searchParams}${filterParams}`,
       }),
   });
 };

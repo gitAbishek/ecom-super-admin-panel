@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Eye, Edit } from 'lucide-react';
+import { Eye, Edit, Trash2 } from 'lucide-react';
 import type { Order } from '@/types/order';
 import { getValue } from '@/utils/object';
 
@@ -7,9 +7,10 @@ export interface OrderTableProps {
   data: Order[];
   onView: (order: Order) => void;
   onEdit: (order: Order) => void;
+  onDelete?: (order: Order) => void;
 }
 
-export default function OrderTable({ data, onView, onEdit }: OrderTableProps) {
+export default function OrderTable({ data, onView, onEdit, onDelete }: OrderTableProps) {
   return (
     <>
       {data.map((order) => (
@@ -38,6 +39,17 @@ export default function OrderTable({ data, onView, onEdit }: OrderTableProps) {
               >
                 <Edit className="h-4 w-4" />
               </Button>
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(order)}
+                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  title="Delete order"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </td>
         </tr>

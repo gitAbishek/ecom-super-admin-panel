@@ -9,7 +9,12 @@ interface Props {
 }
 
 export const Pagination: React.FC<Props> = ({ handlePageChange, total, pageCount, currentPage }) => {
-  const totalPages = pageCount || Math.ceil(total/7);
+  const totalPages = pageCount || Math.max(Math.ceil(total/7), total > 0 ? 1 : 0);
+  
+  // Don't render pagination if there are no pages
+  if (totalPages <= 0) {
+    return null;
+  }
   
   return (
     <div className="flex justify-end py-5">

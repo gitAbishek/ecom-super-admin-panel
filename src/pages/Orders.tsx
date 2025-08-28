@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import CustomHeaders from "@/components/common/CustomHeaders";
 import CustomFilters from "@/components/common/CustomFilters";
@@ -7,74 +8,115 @@ import CustomEmptyState from "@/components/common/CustomEmptyState";
 import CustomLoader from "@/components/loader/CustomLoader";
 import BaseTable from "@/components/ui/BaseTable";
 import OrderTable from "@/components/OrderTable";
+import Pagination from "@/lib/pagination";
+import DeleteModal from "@/components/ui/DeleteModal";
+import { useDebounce } from "@/hooks/useDebounceSearch.hook";
+import { orderTableHeaders } from "@/constants/tableHeaders";
 import type { Order } from "@/types/order";
-import { useGetAllOrders } from "@/hooks/order.hook";
+import { useGetAllOrders, useDeleteOrder } from "@/hooks/order.hook";
 import { getValue } from "@/utils/object";
+import { showErrorMessage, showSuccessMessage } from "@/utils/toast";
 import { Package } from "lucide-react";
+import { checkIfEmpty } from "@/utils/validation";
 
 export default function Orders() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
-  // Removed unused delete modal state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [itemsPerPage] = useState(20);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
 
-  // Fetch orders (static page/limit, since pagination is not implemented)
+  // Debounced search
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+
+  // Prepare filters
+  const filters = selectedStatus === "All" ? {} : { status: selectedStatus };
+
+  // Delete mutation
+  const { mutateAsync: deleteOrder, isPending: isDeleting } = useDeleteOrder();
+
+  // Fetch orders with search and filters
   const {
     data: ordersData,
     isLoading,
     error,
-  } = useGetAllOrders({ page: 1, limit: 20 });
-
-  // Removed unused updateOrder and deleteOrder logic
-
-  // Transform API data to Order[]
-  const apiData = ordersData as unknown as {
-    orders?: { results?: Record<string, unknown>[] };
-    results?: Record<string, unknown>[];
-  };
-  const apiOrders = apiData?.orders?.results || apiData?.results || [];
-  const orders: Order[] = apiOrders.map((o: Record<string, unknown>) => ({
-    id: getValue(o, '_id') as string,
-    customer:
-      (getValue(o, 'customerName') as string) ||
-      (getValue(o, 'customer') as string) ||
-      ((getValue(o, 'user') as { name?: string })?.name ?? 'N/A'),
-    status: getValue(o, 'status') as string,
-    total: (getValue(o, 'total') as number) || (getValue(o, 'amount') as number) || 0,
-    createdAt: getValue(o, 'createdAt') as string,
-  }));
-
-  // Filtered orders
-  const filteredOrders = orders.filter((order) => {
-    const customer = getValue(order, 'customer') ?? '';
-    const status = getValue(order, 'status') ?? '';
-    const matchesSearch = customer.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatus === 'All' || status === selectedStatus;
-    return matchesSearch && matchesStatus;
+  } = useGetAllOrders({
+    page: currentPage + 1,
+    limit: itemsPerPage,
+    search: debouncedSearchTerm,
+    filters,
   });
 
-  const tableHeaders = [
-    { title: "Customer" },
-    { title: "Status" },
-    { title: "Total" },
-    { title: "Created" },
-  ];
+  // Sync orders with allOrders state
+  useEffect(() => {
+    if (!checkIfEmpty(getValue(ordersData, "orders.results"))) {
+      setAllOrders(getValue(ordersData, "orders.results"));
+    }
+  }, [ordersData]);
 
-  // Actions
+  // Handle page change
+  const handlePageChange = (page: { selected: number }) => {
+    setCurrentPage(page.selected);
+  };
+
+  // Handle view order
   const handleViewOrder = (order: Order) => {
     navigate(`/orders/view/${order.id}`);
   };
+
+  // Handle edit order
   const handleEditOrder = (order: Order) => {
     navigate(`/orders/edit/${order.id}`);
   };
 
+  // Handle delete order
+  const handleDeleteOrder = (order: Order) => {
+    setDeletingOrder(order);
+    setShowDeleteModal(true);
+  };
+
+  // Confirm delete
+  const confirmDelete = async () => {
+    if (deletingOrder) {
+      try {
+        const response = await deleteOrder(deletingOrder.id);
+        showSuccessMessage(
+          getValue(response, "message") ||
+            `Order "${deletingOrder.id}" deleted successfully!`
+        );
+
+        // Invalidate orders query to refetch the list
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+
+        setDeletingOrder(null);
+        setShowDeleteModal(false);
+      } catch (error) {
+        showErrorMessage(
+          getValue(error, "message") ||
+            "Failed to delete order. Please try again."
+        );
+      }
+    }
+  };
+
+  // Handle close delete modal
+  const handleCloseDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeletingOrder(null);
+  };
+
   // Loading state
   if (isLoading) return <CustomLoader text="Loading orders..." />;
+
   if (error)
     return (
       <div className="p-6 flex items-center justify-center min-h-[400px]">
         <span className="text-red-600 dark:text-red-400">
-          {getValue(error, 'message') || 'Failed to load orders.'}
+          {getValue(error, "message") || "Failed to load orders."}
         </span>
       </div>
     );
@@ -86,6 +128,7 @@ export default function Orders() {
         description="Manage and track all customer orders"
         onAdd={() => {}}
       />
+
       <CustomFilters
         filters={[
           {
@@ -109,33 +152,57 @@ export default function Orders() {
           },
         ]}
       />
+
       <Card>
         <CardContent className="p-0">
-          {filteredOrders.length === 0 ? (
+          {allOrders.length === 0 ? (
             <CustomEmptyState
               icon={<Package className="h-12 w-12 text-gray-400" />}
               title="No orders found"
               description={
-                searchTerm
-                  ? "No orders match your search."
+                debouncedSearchTerm
+                  ? "No orders match your search criteria."
                   : "No orders have been placed yet."
               }
             />
           ) : (
-            <BaseTable
-              tableHeaders={tableHeaders}
-              tableData={
-                <OrderTable
-                  data={filteredOrders}
-                  onView={handleViewOrder}
-                  onEdit={handleEditOrder}
-                />
-              }
-              showAction={true}
-            />
+            <>
+              <BaseTable
+                tableHeaders={orderTableHeaders}
+                tableData={
+                  <OrderTable
+                    data={allOrders}
+                    onView={handleViewOrder}
+                    onEdit={handleEditOrder}
+                    onDelete={handleDeleteOrder}
+                  />
+                }
+                showAction={true}
+              />
+            </>
           )}
         </CardContent>
       </Card>
+
+      <Pagination
+        total={getValue(ordersData, "orders.totalCount", 0)}
+        pageCount={getValue(ordersData, "orders.totalPages", 0)}
+        currentPage={currentPage}
+        handlePageChange={handlePageChange}
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingOrder && (
+        <DeleteModal
+          visible={showDeleteModal}
+          setVisible={setShowDeleteModal}
+          onClose={handleCloseDeleteModal}
+          handleDelete={confirmDelete}
+          isPending={isDeleting}
+          title="Delete Order"
+          description={`Are you sure you want to delete order "${deletingOrder.id}"? This action cannot be undone.`}
+        />
+      )}
     </div>
   );
 }

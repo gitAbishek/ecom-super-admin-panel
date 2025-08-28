@@ -1,4 +1,4 @@
-import { get, patch, post, put } from "@/api/client";
+import { get, patch, post, put, deleteApi } from "@/api/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 // Place order
@@ -51,6 +51,15 @@ export const useRefundOrder = () =>
       }),
   });
 
+// Delete order (admin only)
+export const useDeleteOrder = () =>
+  useMutation({
+    mutationFn: (id: string) =>
+      deleteApi({
+        url: `api/v1/order/${id}`,
+      }),
+  });
+
 // Retry failed payment by customer
 export const useRetryPayment = () =>
   useMutation({
@@ -65,17 +74,25 @@ export const useRetryPayment = () =>
 export const useGetAllOrders = ({
   page,
   limit,
+  search,
+  filters,
 }: {
   page: number;
   limit: number;
-}) =>
-  useQuery({
-    queryKey: ["orders", page, limit],
+  search?: string;
+  filters?: Record<string, unknown>;
+}) => {
+  const searchParams = search ? `&search=${encodeURIComponent(search)}` : '';
+  const filterParams = filters ? `&filters=${encodeURIComponent(JSON.stringify(filters))}` : '';
+  
+  return useQuery({
+    queryKey: ["orders", page, limit, search, filters],
     queryFn: () =>
       get({
-        url: `api/v1/order/?page=${page}&limit=${limit}`,
+        url: `api/v1/order/?page=${page}&limit=${limit}${searchParams}${filterParams}`,
       }),
   });
+};
 
 // Get single order details by id
 export const useGetSingleOrderDetails = (id: string) =>

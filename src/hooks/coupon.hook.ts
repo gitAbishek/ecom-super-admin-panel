@@ -1,4 +1,4 @@
-import { get, post, put, deleteApi, postWithToken } from "@/api/client";
+import { get, put, deleteApi, postWithToken } from "@/api/client";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 // Create coupon
@@ -34,30 +34,22 @@ export const useDeleteCoupon = () =>
 export const useGetAllCoupons = ({
   page,
   limit,
-  distributionMethod,
-  isActive,
   search,
+  filters,
 }: {
   page: number;
   limit: number;
-  distributionMethod?: string;
-  isActive?: boolean;
   search?: string;
+  filters?: Record<string, unknown>;
 }) => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-    limit: limit.toString(),
-  });
+  const searchParams = search ? `&search=${encodeURIComponent(search)}` : '';
+  const filterParams = filters ? `&filters=${encodeURIComponent(JSON.stringify(filters))}` : '';
   
-  if (distributionMethod) params.append('distributionMethod', distributionMethod);
-  if (isActive !== undefined) params.append('isActive', isActive.toString());
-  if (search) params.append('search', search);
-
   return useQuery({
-    queryKey: ["coupons", page, limit, distributionMethod, isActive, search],
+    queryKey: ["coupons", page, limit, search, filters],
     queryFn: () =>
       get({
-        url: `api/v1/coupons/?${params.toString()}`,
+        url: `api/v1/coupons/?page=${page}&limit=${limit}${searchParams}${filterParams}`,
       }),
   });
 };

@@ -1,171 +1,218 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import CustomHeaders from '@/components/common/CustomHeaders';
-import CustomLoader from '@/components/loader/CustomLoader';
-import CustomEmptyState from '@/components/common/CustomEmptyState';
-import { Eye, Users, Search } from 'lucide-react';
-import { useGetAllCustomers } from '@/hooks/payment.hook';
-import { getValue } from '@/utils/object';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import BaseTable from "@/components/ui/BaseTable";
+import CustomerTable from "@/components/CustomerTable";
+import DeleteModal from "@/components/ui/DeleteModal";
+import CustomHeaders from "@/components/common/CustomHeaders";
+import CustomFilters from "@/components/common/CustomFilters";
+import { useGetAllCustomers, useDeleteCustomer } from "@/hooks/payment.hook";
+import { showErrorMessage, showSuccessMessage } from "@/utils/toast";
+import { getValue } from "@/utils/object";
+import { AlertTriangle, Users, Plus } from "lucide-react";
+import CustomLoader from "@/components/loader/CustomLoader";
+import CustomEmptyState from "@/components/common/CustomEmptyState";
+import Pagination from "@/lib/pagination";
+import { useDebounce } from "@/hooks/useDebounceSearch.hook";
+import { customerTableHeaders } from "@/constants/tableHeaders";
+
+interface Customer {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  orders: number;
+  totalSpent: number;
+  status: string;
+  [key: string]: unknown;
+}
 
 export default function Customers() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const { data, isLoading, error } = useGetAllCustomers();
-
-  if (isLoading) return <CustomLoader text="Loading customers..." />;
-  if (error) return (
-    <CustomEmptyState
-      icon={<Users className="h-12 w-12 text-gray-400" />}
-      title="Error loading customers"
-      description="There was an error loading the customer data."
-    />
+  const [searchTerm, setSearchTerm] = useState("");
+  const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [limit] = useState(6);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingCustomer, setDeletingCustomer] = useState<Customer | null>(
+    null
   );
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
-  // Debug logging to understand data structure
-  console.log('Customer API Response:', data);
+  const { mutateAsync: deleteCustomer, isPending: isDeleting } =
+    useDeleteCustomer();
 
-  // Extract customers from the correct API response structure
-  const customersData = getValue(data, 'customers') as Record<string, unknown> || {};
-  const customersArray = getValue(customersData, 'results') as Record<string, unknown>[] || [];
-  
-  const filteredCustomers = customersArray.filter((customer: Record<string, unknown>) => {
-    const name = getValue(customer, 'name') || `${getValue(customer, 'firstName') || ''} ${getValue(customer, 'lastName') || ''}`.trim() || '';
-    const email = getValue(customer, 'email') || '';
-    const phone = getValue(customer, 'phone') || getValue(customer, 'phoneNumber') || '';
-    
-    return (
-      name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      phone.includes(searchTerm)
-    );
+  // Navigate to add customer page
+  const handleAddCustomer = () => {
+    navigate("/customers/add");
+  };
+
+  // Fetch customers from API
+  const {
+    data: customersData,
+    isLoading,
+    error,
+  } = useGetAllCustomers({
+    page: currentPage + 1,
+    limit,
+    search: debouncedSearchTerm,
+    filters: {
+      status: selectedStatus,
+    },
   });
 
-  const formatDate = (dateString: unknown) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString as string).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
+  const handleViewCustomer = (customer: Customer) => {
+    navigate(`/customers/view/${customer._id}`);
   };
+
+  const handleEditCustomer = (customer: Customer) => {
+    navigate(`/customers/edit/${customer._id}`);
+  };
+
+  const handleDeleteCustomer = (customer: Customer) => {
+    setDeletingCustomer(customer);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deletingCustomer) {
+      try {
+        const response = await deleteCustomer(deletingCustomer._id);
+        showSuccessMessage(
+          getValue(response, "message") ||
+            `Customer "${deletingCustomer.name}" deleted successfully!`
+        );
+        setDeletingCustomer(null);
+        setShowDeleteModal(false);
+      } catch (error) {
+        showErrorMessage(
+          getValue(error, "message") ||
+            "Failed to delete customer. Please try again."
+        );
+      }
+    }
+  };
+
+  const handleCloseDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeletingCustomer(null);
+  };
+
+  const handlePageChange = (data: { selected: number }) => {
+    const selectedPage = data.selected;
+    setCurrentPage(selectedPage);
+  };
+
+  useEffect(() => {
+    if (customersData) {
+      setAllCustomers(getValue(customersData, "customers.results", []));
+    }
+  }, [customersData]);
+
+  // Loading state
+  if (isLoading) {
+    return <CustomLoader text="Loading customers..." />;
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+          <AlertTriangle className="h-6 w-6" />
+          <span>Error loading customers: {error.message}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <CustomHeaders
-        title="Customer Management"
+        title="Customers"
         description="Manage and view customer information"
+        onAdd={handleAddCustomer}
+        buttonText="Add Customer"
       />
 
-      {/* Search Bar */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search customers by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filters */}
+      <CustomFilters
+        filters={[
+          {
+            type: "search",
+            placeholder: "Search customers...",
+            value: searchTerm,
+            onChange: setSearchTerm,
+          },
+          {
+            type: "select",
+            value: selectedStatus,
+            onChange: setSelectedStatus,
+            options: [
+              { value: "All", label: "All Status" },
+              { value: "active", label: "Active" },
+              { value: "inactive", label: "Inactive" },
+            ],
+          },
+        ]}
+      />
 
-      {/* Customer List */}
-      <Card>
-        <CardContent className="p-0">
-          {filteredCustomers.length === 0 ? (
-            <CustomEmptyState
-              icon={<Users className="h-12 w-12 text-gray-400" />}
-              title="No customers found"
-              description="No customers match your search criteria."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Contact
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Registration Date
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
-                  {filteredCustomers.map((customer: any, index: number) => {
-                    const customerId = getValue(customer, '_id') || getValue(customer, 'id') || index;
-                    const name = getValue(customer, 'name') || 
-                                `${getValue(customer, 'firstName') || ''} ${getValue(customer, 'lastName') || ''}`.trim() || 'N/A';
-                    const email = getValue(customer, 'email') || 'N/A';
-                    const phone = getValue(customer, 'phone') || getValue(customer, 'phoneNumber') || 'N/A';
-                    const createdAt = getValue(customer, 'createdAt') || getValue(customer, 'registrationDate');
-                    const isActive = getValue(customer, 'isActive') !== false;
+      {/* Customers Table */}
+      <div className="overflow-hidden">
+        {allCustomers.length === 0 ? (
+          <CustomEmptyState
+            icon={<Users className="h-12 w-12 text-gray-400" />}
+            title="No customers found"
+            description={
+              debouncedSearchTerm
+                ? "No customers match your search."
+                : "Get started by adding your first customer."
+            }
+            showAction={!debouncedSearchTerm}
+            actionText="Add Customer"
+            onAction={handleAddCustomer}
+            actionIcon={<Plus className="h-4 w-4 mr-2" />}
+          />
+        ) : (
+          <BaseTable
+            tableHeaders={customerTableHeaders}
+            tableData={
+              <CustomerTable
+                data={allCustomers}
+                onView={handleViewCustomer}
+                onEdit={handleEditCustomer}
+                onDelete={handleDeleteCustomer}
+              />
+            }
+          />
+        )}
 
-                    return (
-                      <tr key={customerId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                                <Users className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                {name}
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                ID: {customerId}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">{email}</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{phone}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {formatDate(createdAt)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            isActive
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          }`}>
-                            {isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <button
-                            onClick={() => navigate(`/customers/view/${customerId}`)}
-                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors duration-200"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+        <Pagination
+          handlePageChange={handlePageChange}
+          total={getValue(customersData, "totalCount", allCustomers.length)}
+          pageCount={Math.max(
+            getValue(customersData, "totalPages", 0),
+            allCustomers.length > 0 ? 1 : 0
           )}
-        </CardContent>
-      </Card>
+          currentPage={currentPage}
+        />
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        visible={showDeleteModal}
+        setVisible={setShowDeleteModal}
+        onClose={handleCloseDeleteModal}
+        handleDelete={confirmDelete}
+        isPending={isDeleting}
+        title="Delete Customer"
+        description={
+          deletingCustomer
+            ? `Are you sure you want to delete customer "${deletingCustomer.name}"? This action cannot be undone.`
+            : ""
+        }
+      />
     </div>
   );
 }

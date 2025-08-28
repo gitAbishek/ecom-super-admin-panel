@@ -1,190 +1,233 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import CustomHeaders from '@/components/common/CustomHeaders';
-import CustomLoader from '@/components/loader/CustomLoader';
-import CustomEmptyState from '@/components/common/CustomEmptyState';
-import { Eye, CreditCard, Search, DollarSign } from 'lucide-react';
-import { useGetAllPayments } from '@/hooks/payment.hook';
-import { getValue } from '@/utils/object';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import BaseTable from "@/components/ui/BaseTable";
+import PaymentTable from "@/components/PaymentTable";
+import DeleteModal from "@/components/ui/DeleteModal";
+import CustomHeaders from "@/components/common/CustomHeaders";
+import CustomFilters from "@/components/common/CustomFilters";
+import { useGetAllPayments, useDeletePayment } from "@/hooks/payment.hook";
+import { showErrorMessage, showSuccessMessage } from "@/utils/toast";
+import { getValue } from "@/utils/object";
+import { AlertTriangle, CreditCard, Plus } from "lucide-react";
+import CustomLoader from "@/components/loader/CustomLoader";
+import CustomEmptyState from "@/components/common/CustomEmptyState";
+import Pagination from "@/lib/pagination";
+import { useDebounce } from "@/hooks/useDebounceSearch.hook";
+import { paymentTableHeaders } from "@/constants/tableHeaders";
+
+interface Payment {
+  _id: string;
+  customer: string;
+  amount: number;
+  method: string;
+  status: string;
+  date: string;
+  [key: string]: unknown;
+}
 
 export default function Payments() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const { data, isLoading, error } = useGetAllPayments();
-
-  if (isLoading) return <CustomLoader text="Loading payments..." />;
-  if (error) return (
-    <CustomEmptyState
-      icon={<CreditCard className="h-12 w-12 text-gray-400" />}
-      title="Error loading payments"
-      description="There was an error loading the payment data."
-    />
+  const [searchTerm, setSearchTerm] = useState("");
+  const [allPayments, setAllPayments] = useState<Payment[]>([]);
+  const [selectedMethod, setSelectedMethod] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [limit] = useState(6);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingPayment, setDeletingPayment] = useState<Payment | null>(
+    null
   );
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
-  // Extract payments from the API response structure
-  const paymentsData = getValue(data, 'payments') as Record<string, unknown> || {};
-  const paymentsArray = getValue(paymentsData, 'results') as Record<string, unknown>[] || [];
-  
-  const filteredPayments = paymentsArray.filter((payment: Record<string, unknown>) => {
-    const transactionId = getValue(payment, 'paymentId') || getValue(payment, 'stripePaymentIntentId') || getValue(payment, '_id') || '';
-    const orderId = getValue(payment, 'orderId') || '';
-    const status = getValue(payment, 'status') || '';
-    
-    return (
-      transactionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      status.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+  const { mutateAsync: deletePayment, isPending: isDeleting } =
+    useDeletePayment();
 
-  const formatAmount = (amount: unknown) => {
-    if (!amount) return '$0.00';
-    return `$${Number(amount).toFixed(2)}`;
+  // Navigate to add payment page
+  const handleAddPayment = () => {
+    navigate("/payments/add");
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'completed':
-      case 'success':
-      case 'paid':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'pending':
-      case 'processing':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'failed':
-      case 'cancelled':
-      case 'refunded':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
+  // Fetch payments from API
+  const {
+    data: paymentsData,
+    isLoading,
+    error,
+  } = useGetAllPayments({
+    page: currentPage + 1,
+    limit,
+    search: debouncedSearchTerm,
+    filters: {
+      method: selectedMethod,
+      status: selectedStatus,
+    },
+  });
+
+  const handleViewPayment = (payment: Payment) => {
+    navigate(`/payments/view/${payment._id}`);
+  };
+
+  const handleEditPayment = (payment: Payment) => {
+    navigate(`/payments/edit/${payment._id}`);
+  };
+
+  const handleDeletePayment = (payment: Payment) => {
+    setDeletingPayment(payment);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (deletingPayment) {
+      try {
+        const response = await deletePayment(deletingPayment._id);
+        showSuccessMessage(
+          getValue(response, "message") ||
+            `Payment #${deletingPayment._id.slice(0, 8)} deleted successfully!`
+        );
+        setDeletingPayment(null);
+        setShowDeleteModal(false);
+      } catch (error) {
+        showErrorMessage(
+          getValue(error, "message") ||
+            "Failed to delete payment. Please try again."
+        );
+      }
     }
   };
 
+  const handleCloseDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeletingPayment(null);
+  };
+
+  const handlePageChange = (data: { selected: number }) => {
+    const selectedPage = data.selected;
+    setCurrentPage(selectedPage);
+  };
+
+  useEffect(() => {
+    if (paymentsData) {
+     setAllPayments(getValue(paymentsData, "payments.results", []));
+    }
+  }, [paymentsData]);
+
+  console.log({allPayments});
+
+  // Loading state
+  if (isLoading) {
+    return <CustomLoader text="Loading payments..." />;
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+          <AlertTriangle className="h-6 w-6" />
+          <span>Error loading payments: {error.message}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <CustomHeaders
-        title="Payment Management"
-        description="Manage and view payment transactions"
+        title="Payments"
+        description="Track and manage payment transactions"
+        onAdd={handleAddPayment}
+        buttonText="Add Payment"
       />
 
-      {/* Search Bar */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <input
-              type="text"
-              placeholder="Search payments by payment ID, order ID, or status..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Filters */}
+      <CustomFilters
+        filters={[
+          {
+            type: "search",
+            placeholder: "Search payments...",
+            value: searchTerm,
+            onChange: setSearchTerm,
+          },
+          {
+            type: "select",
+            value: selectedMethod,
+            onChange: setSelectedMethod,
+            options: [
+              { value: "All", label: "All Methods" },
+              { value: "credit_card", label: "Credit Card" },
+              { value: "debit_card", label: "Debit Card" },
+              { value: "paypal", label: "PayPal" },
+              { value: "bank_transfer", label: "Bank Transfer" },
+              { value: "cash", label: "Cash" },
+            ],
+          },
+          {
+            type: "select",
+            value: selectedStatus,
+            onChange: setSelectedStatus,
+            options: [
+              { value: "All", label: "All Status" },
+              { value: "completed", label: "Completed" },
+              { value: "pending", label: "Pending" },
+              { value: "failed", label: "Failed" },
+              { value: "refunded", label: "Refunded" },
+            ],
+          },
+        ]}
+      />
 
-      {/* Payment List */}
-      <Card>
-        <CardContent className="p-0">
-          {filteredPayments.length === 0 ? (
-            <CustomEmptyState
-              icon={<CreditCard className="h-12 w-12 text-gray-400" />}
-              title="No payments found"
-              description="No payments match your search criteria."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Transaction
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Amount
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Payment Method
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-600">
-                  {filteredPayments.map((payment: Record<string, unknown>, index: number) => {
-                    const paymentId = getValue(payment, '_id') || getValue(payment, 'id') || index;
-                    const transactionId = getValue(payment, 'paymentId') || getValue(payment, 'stripePaymentIntentId') || paymentId;
-                    const amount = getValue(payment, 'amount') || 0;
-                    const paymentMethod = 'Stripe'; // Based on API response, this appears to be Stripe payments
-                    const status = getValue(payment, 'status') || 'unknown';
+      {/* Payments Table */}
+      <div className="overflow-hidden">
+        {allPayments.length === 0 ? (
+          <CustomEmptyState
+            icon={<CreditCard className="h-12 w-12 text-gray-400" />}
+            title="No payments found"
+            description={
+              debouncedSearchTerm
+                ? "No payments match your search."
+                : "Get started by adding your first payment."
+            }
+            showAction={!debouncedSearchTerm}
+            actionText="Add Payment"
+            onAction={handleAddPayment}
+            actionIcon={<Plus className="h-4 w-4 mr-2" />}
+          />
+        ) : (
+          <BaseTable
+            tableHeaders={paymentTableHeaders}
+            tableData={
+              <PaymentTable
+                data={Array.isArray(allPayments) ? allPayments : []}
+                onView={handleViewPayment}
+                onEdit={handleEditPayment}
+                onDelete={handleDeletePayment}
+              />
+            }
+          />
+        )}
 
-                    return (
-                      <tr key={paymentId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-10 w-10">
-                              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                                <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                              </div>
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900 dark:text-white">
-                                {transactionId}
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                ID: {paymentId}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-white">Stripe Customer</div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{getValue(payment, 'stripeCustomerId') || 'N/A'}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                            {formatAmount(amount)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white capitalize">
-                          {paymentMethod}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(status)}`}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => navigate(`/payments/view/${paymentId}`)}
-                              className="h-8 w-8 p-0"
-                              title="View payment"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <Pagination
+          handlePageChange={handlePageChange}
+          total={getValue(paymentsData, "totalCount", allPayments.length)}
+          pageCount={Math.max(getValue(paymentsData, "totalPages", 0), allPayments.length > 0 ? 1 : 0)}
+          currentPage={currentPage}
+        />
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteModal
+        visible={showDeleteModal}
+        setVisible={setShowDeleteModal}
+        onClose={handleCloseDeleteModal}
+        handleDelete={confirmDelete}
+        isPending={isDeleting}
+        title="Delete Payment"
+        description={
+          deletingPayment
+            ? `Are you sure you want to delete payment #${deletingPayment._id.slice(0, 8)}? This action cannot be undone.`
+            : ""
+        }
+      />
     </div>
   );
 }
