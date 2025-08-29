@@ -1,5 +1,5 @@
 import { get, post, put, deleteApi, postWithToken } from "@/api/client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Role types
 export interface Role {
@@ -47,13 +47,28 @@ export interface SingleRoleResponse {
   role: Role | null;
 }
 
+interface GetAllRolesParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  filter?: Record<string, unknown>;
+}
+
 // Get list of roles
-export const useGetAllRoles = () => {
+export const useGetAllRoles = (params: GetAllRolesParams = {}) => {
+  const { page = 1, limit = 20, search, filter } = params;
+  
   return useQuery({
-    queryKey: ["roles"],
+    queryKey: ["roles", page, limit, search, JSON.stringify(filter)],
     queryFn: () =>
       get({
         url: "api/v1/user/role",
+        params: {
+          page,
+          limit,
+          search,
+          ...filter,
+        },
       }),
   });
 };
@@ -90,10 +105,16 @@ export const useUpdateRole = () =>
   });
 
 // Delete role
-export const useDeleteRole = () =>
-  useMutation({
+export const useDeleteRole = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
     mutationFn: (id: string) =>
       deleteApi({
         url: `api/v1/user/role/${id}`,
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+    },
   });
+};

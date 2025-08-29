@@ -1,63 +1,87 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent } from '@/components/ui/card';
-import CustomHeaders from '@/components/common/CustomHeaders';
-import CustomFilters from '@/components/common/CustomFilters';
-import CustomLoader from '@/components/loader/CustomLoader';
-import CustomEmptyState from '@/components/common/CustomEmptyState';
-import BaseTable from '@/components/ui/BaseTable';
-import RoleTable from '@/components/RoleTable';
-import DeleteModal from '@/components/ui/DeleteModal';
-import { Shield } from 'lucide-react';
-import { useGetAllRoles, useDeleteRole } from '@/hooks/role.hook';
-import { getValue } from '@/utils/object';
-import { showSuccessMessage, showErrorMessage } from '@/utils/toast';
-import type { Role } from '@/components/RoleTable';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import BaseTable from "@/components/ui/BaseTable";
+import RoleTable from "@/components/RoleTable";
+import DeleteModal from "@/components/ui/DeleteModal";
+import CustomHeaders from "@/components/common/CustomHeaders";
+import CustomFilters from "@/components/common/CustomFilters";
+import {
+  useGetAllRoles,
+  useDeleteRole,
+} from "@/hooks/role.hook";
+import { showErrorMessage, showSuccessMessage } from "@/utils/toast";
+import { getValue } from "@/utils/object";
+import { AlertTriangle, Shield, Plus } from "lucide-react";
+import CustomLoader from "@/components/loader/CustomLoader";
+import CustomEmptyState from "@/components/common/CustomEmptyState";
+import Pagination from "@/lib/pagination";
+import { useDebounce } from "@/hooks/useDebounceSearch.hook";
+import { roleTableHeaders } from "@/constants/tableHeaders";
+import type { RoleType } from "@/types/role";
 
 export default function Roles() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [allRoles, setAllRoles] = useState<RoleType[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState("All");
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [limit] = useState(6);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingRole, setDeletingRole] = useState<Role | null>(null);
-  const { data, isLoading, error, refetch } = useGetAllRoles();
-  const deleteRoleMutation = useDeleteRole();
+  const [deletingRole, setDeletingRole] = useState<RoleType | null>(
+    null
+  );
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
 
-  // Table headers
-  const tableHeaders = [
-    { title: 'Role' },
-    { title: 'Description' },
-    { title: 'Permissions' },
-    { title: 'Created Date' },
-  ];
+  const { mutateAsync: deleteRole, isPending: isDeleting } =
+    useDeleteRole();
 
-  const handleDeleteRole = (role: Role) => {
-    setDeletingRole(role);
-    setShowDeleteModal(true);
+  // Navigate to add role page
+  const handleAddRole = () => {
+    navigate("/roles/add");
   };
 
-  const handleViewRole = (role: Role) => {
+  // Fetch roles from API
+  const {
+    data: rolesData,
+    isLoading,
+    error,
+  } = useGetAllRoles({
+    page: currentPage + 1,
+    limit,
+    search: debouncedSearchTerm,
+    filter: {
+      status: selectedStatus === "All" ? "" : selectedStatus,
+    },
+  });
+
+  const handleViewRole = (role: RoleType) => {
     navigate(`/roles/view/${role._id}`);
   };
 
-  const handleEditRole = (role: Role) => {
+  const handleEditRole = (role: RoleType) => {
     navigate(`/roles/edit/${role._id}`);
+  };
+
+  const handleDeleteRole = (role: RoleType) => {
+    setDeletingRole(role);
+    setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
     if (deletingRole) {
       try {
-        const roleId = getValue(deletingRole, '_id') || getValue(deletingRole, 'id');
-        const roleName = getValue(deletingRole, 'label') || 'Unknown';
-        await deleteRoleMutation.mutateAsync(roleId as string);
-        showSuccessMessage(`Role "${roleName}" deleted successfully!`);
+        const response = await deleteRole(deletingRole._id);
+        showSuccessMessage(
+          getValue(response, "message") ||
+            `Role "${deletingRole.label}" deleted successfully!`
+        );
         setDeletingRole(null);
         setShowDeleteModal(false);
-        refetch(); // Refresh the roles list
       } catch (error) {
-        console.error('Error deleting role:', error);
-        const roleName = getValue(deletingRole, 'label') || 'Unknown';
-        showErrorMessage(`Failed to delete role "${roleName}". Please try again.`);
+        showErrorMessage(
+          getValue(error, "message") ||
+            "Failed to delete role. Please try again."
+        );
       }
     }
   };
@@ -67,97 +91,103 @@ export default function Roles() {
     setDeletingRole(null);
   };
 
-  if (isLoading) return <CustomLoader text="Loading roles..." />;
-  if (error) return (
-    <CustomEmptyState
-      icon={<Shield className="h-12 w-12 text-gray-400" />}
-      title="Error loading roles"
-      description="There was an error loading the roles data."
-    />
-  );
+  const handlePageChange = (data: { selected: number }) => {
+    const selectedPage = data.selected;
+    setCurrentPage(selectedPage);
+  };
 
-  // Extract roles from the API response structure
-  const rolesData = getValue(data, 'roles') as Record<string, unknown> || {};
-  const rolesArray = getValue(rolesData, 'results') as Record<string, unknown>[] || [];
-  // Fallback to direct array if no nested structure
-  const rawRoles = rolesArray.length > 0 ? rolesArray : (Array.isArray(data) ? data : []);
-  
-  // Transform raw data to typed Role objects
-  const roles: Role[] = rawRoles.map((role: Record<string, unknown>) => ({
-    _id: getValue(role, '_id') as string || getValue(role, 'id') as string || '',
-    label: getValue(role, 'label') as string || '',
-    description: getValue(role, 'description') as string || '',
-    permissions: getValue(role, 'permissions') as string[] || [],
-    isActive: getValue(role, 'isActive') !== false,
-    adminAccess: getValue(role, 'adminAccess') === true,
-    isSystemRole: getValue(role, 'isSystemRole') === true,
-    createdAt: getValue(role, 'createdAt') as string || '',
-  }));
-  
-  const filteredRoles = roles.filter((role: Role) => {
-    const matchesSearch = role.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      role.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = selectedStatus === 'All' || 
-      (selectedStatus === 'Active' && role.isActive) || 
-      (selectedStatus === 'Inactive' && !role.isActive);
-    
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    if (rolesData) {
+      setAllRoles(getValue(rolesData, "roles.results", []));
+    }
+  }, [rolesData]);
+
+  // Loading state
+  if (isLoading) {
+    return <CustomLoader text="Loading roles..." />;
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+          <AlertTriangle className="h-6 w-6" />
+          <span>Error loading roles: {error.message}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <CustomHeaders
         title="Role Management"
-        description="Manage user roles and access levels"
-        onAdd={() => navigate("/roles/add")}
+        description="Manage user roles and access permissions"
+        onAdd={handleAddRole}
         buttonText="Add Role"
       />
 
+      {/* Filters */}
       <CustomFilters
         filters={[
           {
-            type: 'search',
-            placeholder: 'Search roles by name or description...',
+            type: "search",
+            placeholder: "Search roles...",
             value: searchTerm,
             onChange: setSearchTerm,
           },
           {
-            type: 'select',
+            type: "select",
             value: selectedStatus,
             onChange: setSelectedStatus,
             options: [
-              { value: 'All', label: 'All Status' },
-              { value: 'Active', label: 'Active' },
-              { value: 'Inactive', label: 'Inactive' },
+              { value: "All", label: "All Status" },
+              { value: "Active", label: "Active" },
+              { value: "Inactive", label: "Inactive" },
             ],
           },
         ]}
       />
 
-      <Card>
-        <CardContent className="p-0">
-          {filteredRoles.length === 0 ? (
-            <CustomEmptyState
-              icon={<Shield className="h-12 w-12 text-gray-400" />}
-              title="No roles found"
-              description={searchTerm ? 'No roles match your search.' : 'No roles have been created yet.'}
-            />
-          ) : (
-            <BaseTable
-              tableHeaders={tableHeaders}
-              tableData={
-                <RoleTable
-                  data={filteredRoles}
-                  onView={handleViewRole}
-                  onEdit={handleEditRole}
-                  onDelete={handleDeleteRole}
-                />
-              }
-              showAction={true}
-            />
-          )}
-        </CardContent>
-      </Card>
+      {/* Roles Table */}
+      <div className="overflow-hidden">
+        {allRoles.length === 0 ? (
+          <CustomEmptyState
+            icon={<Shield className="h-12 w-12 text-gray-400" />}
+            title="No roles found"
+            description={
+              debouncedSearchTerm
+                ? "No roles match your search."
+                : "Get started by adding your first role."
+            }
+            showAction={!debouncedSearchTerm}
+            actionText="Add Role"
+            onAction={handleAddRole}
+            actionIcon={<Plus className="h-4 w-4 mr-2" />}
+          />
+        ) : (
+          <BaseTable
+            tableHeaders={roleTableHeaders}
+            tableData={
+              <RoleTable
+                data={allRoles}
+                onView={handleViewRole}
+                onEdit={handleEditRole}
+                onDelete={handleDeleteRole}
+              />
+            }
+          />
+        )}
+
+        <Pagination
+          handlePageChange={handlePageChange}
+          total={getValue(rolesData, "roles.totalCount", allRoles.length)}
+          pageCount={Math.max(getValue(rolesData, "roles.totalPages", 0), allRoles.length > 0 ? 1 : 0)}
+          currentPage={currentPage}
+        />
+      </div>
 
       {/* Delete Confirmation Modal */}
       <DeleteModal
@@ -165,11 +195,11 @@ export default function Roles() {
         setVisible={setShowDeleteModal}
         onClose={handleCloseDeleteModal}
         handleDelete={confirmDelete}
-        isPending={deleteRoleMutation.isPending}
+        isPending={isDeleting}
         title="Delete Role"
         description={
           deletingRole
-            ? `Are you sure you want to delete the role "${deletingRole.label || 'Unknown'}"? This action cannot be undone.`
+            ? `Are you sure you want to delete the role "${deletingRole.label}"? This action cannot be undone.`
             : ""
         }
       />

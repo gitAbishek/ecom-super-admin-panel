@@ -53,3 +53,30 @@ export const customerTableHeaders = [
   { title: "Total Spent" },
   { title: "Status" },
 ];
+
+export const roleTableHeaders = [
+  { title: "Role" },
+  { title: "Description" },
+  { title: "Permissions" },
+  { title: "Status" },
+  { title: "Created" },
+  { title: "Actions" },
+];
+
+export const permissionTableHeaders = [
+  { title: "Permission" },
+  { title: "Resource" },
+  { title: "Actions" },
+  { title: "Description" },
+  { title: "Created" },
+];
+
+export const staffTableHeaders = [
+  { title: "Staff Member" },
+  { title: "Email" },
+  { title: "Role" },
+  { title: "Department" },
+  { title: "Status" },
+  { title: "Joined" },
+  { title: "Actions" },
+];

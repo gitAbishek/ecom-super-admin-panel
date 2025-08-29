@@ -24,45 +24,69 @@ export default function PermissionTable({ data, onView, onEdit, onDelete }: Perm
     <>
       {data.map((permission) => (
         <tr key={permission._id}>
+          {/* Permission */}
           <td className="px-4 py-4 whitespace-nowrap">
             <div className="flex items-center">
               <div className="flex-shrink-0 h-10 w-10">
                 <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                  <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+                  <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
               </div>
               <div className="ml-4">
                 <div className="text-sm font-medium text-gray-900 dark:text-white">
-                  {getValue(permission, 'permission') || `${permission.resource}:${permission.action}`}
+                  {getValue(permission, 'name') || 'N/A'}
                 </div>
                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {permission.description && (
-                    <span className="max-w-xs truncate block">{permission.description}</span>
-                  )}
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mt-1 ${
-                    permission.isActive
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    getValue(permission, 'isActive') !== false
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                       : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                   }`}>
-                    {permission.isActive ? 'Active' : 'Inactive'}
+                    {getValue(permission, 'isActive') !== false ? 'Active' : 'Inactive'}
                   </span>
                 </div>
               </div>
             </div>
           </td>
-          <td className="px-4 py-4 whitespace-nowrap">
-            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              {permission.action}
-            </span>
-          </td>
+          
+          {/* Resource */}
           <td className="px-4 py-4 whitespace-nowrap">
             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-              {permission.resource}
+              {getValue(permission, 'resource') || 'N/A'}
             </span>
           </td>
-          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-            {formatDate(permission.createdAt)}
+
+          {/* Actions */}
+          <td className="px-4 py-4 whitespace-nowrap">
+            <div className="flex flex-wrap gap-1">
+              {(getValue(permission, 'actions') as string[] || []).slice(0, 2).map((action, index) => (
+                <span key={index} className="inline-flex px-2 py-1 text-xs font-semibold rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                  {action}
+                </span>
+              ))}
+              {(getValue(permission, 'actions') as string[] || []).length > 2 && (
+                <span className="inline-flex px-2 py-1 text-xs font-semibold rounded bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200">
+                  +{(getValue(permission, 'actions') as string[] || []).length - 2}
+                </span>
+              )}
+            </div>
           </td>
+
+          {/* Description */}
+          <td className="px-4 py-4 whitespace-nowrap">
+            <div className="text-sm text-gray-900 dark:text-white max-w-xs">
+              <span className="block truncate">
+                {getValue(permission, 'description') || 'No description'}
+              </span>
+            </div>
+          </td>
+
+          {/* Created */}
+          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+            {formatDate(getValue(permission, 'createdAt') as string)}
+          </td>
+
+          {/* Actions */}
           <td className="px-4 py-4 whitespace-nowrap text-right">
             <div className="flex items-center justify-end space-x-2">
               <Button

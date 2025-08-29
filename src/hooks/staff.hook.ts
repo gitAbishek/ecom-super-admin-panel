@@ -1,5 +1,5 @@
 import { get, put, deleteApi, postWithToken } from "@/api/client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Staff types
 export interface EmergencyContact {
@@ -94,13 +94,28 @@ export interface StaffDetailsResponse {
   data: Staff;
 }
 
+interface GetAllStaffParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  filter?: Record<string, unknown>;
+}
+
 // Get list of staff
-export const useGetAllStaff = () => {
+export const useGetAllStaff = (params: GetAllStaffParams = {}) => {
+  const { page = 1, limit = 20, search, filter } = params;
+  
   return useQuery({
-    queryKey: ["staff"],
+    queryKey: ["staff", page, limit, search, JSON.stringify(filter)],
     queryFn: () =>
       get({
         url: "api/v1/user/staff",
+        params: {
+          page,
+          limit,
+          search,
+          ...filter,
+        },
       }),
   });
 };
@@ -137,10 +152,16 @@ export const useUpdateStaff = () =>
   });
 
 // Delete staff
-export const useDeleteStaff = () =>
-  useMutation({
+export const useDeleteStaff = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
     mutationFn: (id: string) =>
       deleteApi({
         url: `api/v1/user/staff/${id}`,
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["staff"] });
+    },
   });
+};

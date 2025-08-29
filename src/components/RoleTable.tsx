@@ -1,23 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Eye, Edit, Trash2, Shield } from 'lucide-react';
 import { getValue } from '@/utils/object';
-
-export interface Role {
-  _id: string;
-  label: string;
-  description: string;
-  permissions: string[];
-  isActive: boolean;
-  adminAccess: boolean;
-  isSystemRole: boolean;
-  createdAt: string;
-}
+import type { RoleType } from '@/types/role';
 
 export interface RoleTableProps {
-  data: Role[];
-  onView: (role: Role) => void;
-  onEdit: (role: Role) => void;
-  onDelete: (role: Role) => void;
+  data: RoleType[];
+  onView: (role: RoleType) => void;
+  onEdit: (role: RoleType) => void;
+  onDelete: (role: RoleType) => void;
 }
 
 export default function RoleTable({ data, onView, onEdit, onDelete }: RoleTableProps) {
@@ -80,6 +70,15 @@ export default function RoleTable({ data, onView, onEdit, onDelete }: RoleTableP
                 {(getValue(role, 'permissions') as string[])?.length || 0} permissions
               </span>
             </div>
+          </td>
+          <td className="px-4 py-4 whitespace-nowrap">
+            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+              getValue(role, 'isActive') !== false
+                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+            }`}>
+              {getValue(role, 'isActive') !== false ? 'Active' : 'Inactive'}
+            </span>
           </td>
           <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
             {formatDate(getValue(role, 'createdAt') as string)}

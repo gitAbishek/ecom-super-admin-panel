@@ -1,5 +1,5 @@
 import { get, post, put, deleteApi, postWithToken } from "@/api/client";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 // Permission types
 export interface Permission {
@@ -36,13 +36,28 @@ export interface PermissionsResponse {
   data: Permission[];
 }
 
+interface GetAllPermissionsParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  filter?: Record<string, unknown>;
+}
+
 // Get list of permissions
-export const useGetAllPermissions = () => {
+export const useGetAllPermissions = (params: GetAllPermissionsParams = {}) => {
+  const { page = 1, limit = 20, search, filter } = params;
+  
   return useQuery({
-    queryKey: ["permissions"],
+    queryKey: ["permissions", page, limit, search, JSON.stringify(filter)],
     queryFn: () =>
       get({
         url: "api/v1/user/permission",
+        params: {
+          page,
+          limit,
+          search,
+          ...filter,
+        },
       }),
   });
 };
@@ -79,10 +94,16 @@ export const useUpdatePermission = () =>
   });
 
 // Delete permission
-export const useDeletePermission = () =>
-  useMutation({
+export const useDeletePermission = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
     mutationFn: (id: string) =>
       deleteApi({
         url: `api/v1/user/permission/${id}`,
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["permissions"] });
+    },
   });
+};

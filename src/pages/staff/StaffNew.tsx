@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BaseTable from "@/components/ui/BaseTable";
-import StaffTable from "@/components/StaffTable";
+import StaffTableNew from "@/components/StaffTableNew";
 import DeleteModal from "@/components/ui/DeleteModal";
 import CustomHeaders from "@/components/common/CustomHeaders";
 import CustomFilters from "@/components/common/CustomFilters";
@@ -51,7 +51,7 @@ export default function Staff() {
     limit,
     search: debouncedSearchTerm,
     filter: {
-    //   department: selectedDepartment === "All" ? "" : selectedDepartment,
+      department: selectedDepartment === "All" ? "" : selectedDepartment,
       status: selectedStatus === "All" ? "" : selectedStatus,
     },
   });
@@ -201,7 +201,7 @@ export default function Staff() {
           <BaseTable
             tableHeaders={staffTableHeaders}
             tableData={
-              <StaffTable
+              <StaffTableNew
                 data={allStaff}
                 onView={handleViewStaff}
                 onEdit={handleEditStaff}
