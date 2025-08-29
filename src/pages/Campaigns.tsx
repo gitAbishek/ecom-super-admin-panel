@@ -15,7 +15,6 @@ import Pagination from "@/lib/pagination";
 import { useDebounce } from "@/hooks/useDebounceSearch.hook";
 import { campaignTableHeaders } from "@/constants/tableHeaders";
 import type { Campaign } from "@/types/campaign";
-import { checkIfEmpty } from "@/utils/validation";
 
 export default function Campaigns() {
   const navigate = useNavigate();
@@ -55,11 +54,11 @@ export default function Campaigns() {
   });
 
   const handleViewCampaign = (campaign: Campaign) => {
-    navigate(`/campaigns/view/${campaign.id}`);
+    navigate(`/campaigns/view/${campaign._id}`);
   };
 
   const handleEditCampaign = (campaign: Campaign) => {
-    navigate(`/campaigns/edit/${campaign.id}`);
+    navigate(`/campaigns/edit/${campaign._id}`);
   };
 
   const handleDeleteCampaign = (campaign: Campaign) => {
@@ -70,7 +69,7 @@ export default function Campaigns() {
   const confirmDelete = async () => {
     if (deletingCampaign) {
       try {
-        const response = await deleteCampaign(deletingCampaign.id);
+        const response = await deleteCampaign(deletingCampaign._id);
         showSuccessMessage(
           getValue(response, "message") ||
             `Campaign "${deletingCampaign.name}" deleted successfully!`
@@ -96,7 +95,6 @@ export default function Campaigns() {
     setCurrentPage(selectedPage);
   };
 
-  console.log({ campaignsData });
 
   useEffect(() => {
     if (campaignsData) {

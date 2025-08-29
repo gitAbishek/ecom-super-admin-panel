@@ -14,7 +14,7 @@ export default function CampaignTable({ data, onView, onEdit, onDelete }: Campai
   return (
     <>
       {data.map((campaign) => (
-        <tr key={campaign.id}>
+        <tr key={campaign._id}>
           <td className="px-4 py-2 whitespace-nowrap">{getValue(campaign, 'name') ?? ''}</td>
           <td className="px-4 py-2 whitespace-nowrap capitalize">{getValue(campaign, 'campaignType') ?? ''}</td>
           <td className="px-4 py-2 whitespace-nowrap">
