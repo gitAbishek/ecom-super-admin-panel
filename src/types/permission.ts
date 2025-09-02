@@ -1,29 +1,19 @@
-// Permission interface for table display
-export interface PermissionType {
+// Permission type definitions for role management
+
+export interface Permission {
   _id: string;
   name: string;
-  resource: string;
-  actions: string[];
   description: string;
+  module: string;
+  action: string;
+  resource: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-// Permission creation interface
-export interface CreatePermissionData {
-  name: string;
-  resource: string;
-  actions: string[];
-  description: string;
-  isActive: boolean;
-}
-
-// Permission update interface
-export interface UpdatePermissionData {
-  name?: string;
-  resource?: string;
-  actions?: string[];
-  description?: string;
-  isActive?: boolean;
+export interface PermissionsResponse {
+  success: boolean;
+  data: Permission[];
+  message: string;
 }

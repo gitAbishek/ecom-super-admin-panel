@@ -4,80 +4,25 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Home,
-  Package,
-  ShoppingCart,
-  // Users,
-  DollarSign,
   Settings,
   Menu,
   X,
-  // BarChart3,
-  // MessageSquare,
   Bell,
   Store,
   ChevronRight,
-  Grid3X3,
-  // Archive,
-  Megaphone,
-  TicketPercent,
-  Zap,
-  Users,
-  CreditCard,
   Shield,
-  UserCheck,
-  Star,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
-  {
-    name: "Products",
-    icon: Package,
-    isDropdown: true,
-    subItems: [
-      { name: "Categories", href: "/categories", icon: Grid3X3 },
-      { name: "Products", href: "/products", icon: Package },
-      // { name: "Inventories", href: "/inventories", icon: Archive },
-    ],
-  },
-  { name: "Orders", href: "/orders", icon: ShoppingCart },
-  {
-    name: "Campaign & Coupon Services",
-    icon: Zap,
-    isDropdown: true,
-    subItems: [
-      { name: "Campaign", href: "/campaigns", icon: Megaphone },
-      { name: "Coupons", href: "/coupons", icon: TicketPercent },
-    ],
-  },
-  {
-    name: "Payment Management",
-    icon: DollarSign,
-    isDropdown: true,
-    subItems: [
-      { name: "Customers", href: "/customers", icon: Users },
-      { name: "Payments", href: "/payments", icon: CreditCard },
-    ],
-  },
-  {
-    name: "Reviews",
-    icon: Star,
-    href: "/reviews",
-  },
   {
     name: "User Management",
     icon: Shield,
     isDropdown: true,
     subItems: [
       { name: "Roles", href: "/roles", icon: Shield },
-      { name: "Permissions", href: "/permissions", icon: UserCheck },
-      { name: "Staff", href: "/staff", icon: Users },
     ],
   },
-  // { name: "Customers", href: "/customers", icon: Users },
-  // { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  // { name: "Messages", href: "/messages", icon: MessageSquare },
-  // { name: "Payments", href: "/payments", icon: DollarSign },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

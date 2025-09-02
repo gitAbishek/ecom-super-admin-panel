@@ -1,109 +1,91 @@
-import { get, post, put, deleteApi, postWithToken } from "@/api/client";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+// Mock permission hook for role management
+// This provides minimal permission functionality needed for roles to work
 
-// Permission types
-export interface Permission {
+import { useQuery } from '@tanstack/react-query';
+
+// Mock permission data structure
+interface Permission {
   _id: string;
-  resource: string;
-  action: string;
+  name: string;
   description: string;
+  module: string;
+  action: string;
+  resource: string;
   isActive: boolean;
-  isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
-  permission: string;
-  id: string;
-  __v: number;
 }
 
-export interface CreatePermissionData {
-  resource: string;
-  action: string;
-  description: string;
-  isActive: boolean;
-}
+// Mock permissions data
+const mockPermissions: Permission[] = [
+  {
+    _id: '1',
+    name: 'View Dashboard',
+    description: 'Can view the dashboard',
+    module: 'Dashboard',
+    action: 'read',
+    resource: 'dashboard',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    _id: '2',
+    name: 'Manage Roles',
+    description: 'Can create, edit, and delete roles',
+    module: 'User Management',
+    action: 'write',
+    resource: 'roles',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    _id: '3',
+    name: 'View Settings',
+    description: 'Can view application settings',
+    module: 'Settings',
+    action: 'read',
+    resource: 'settings',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+  {
+    _id: '4',
+    name: 'Manage Notifications',
+    description: 'Can manage notifications',
+    module: 'Notifications',
+    action: 'write',
+    resource: 'notifications',
+    isActive: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  },
+];
 
-export interface UpdatePermissionData {
-  resource?: string;
-  action?: string;
-  description?: string;
-  isActive?: boolean;
-}
-
-export interface PermissionsResponse {
+// Mock API response structure
+interface PermissionsResponse {
   success: boolean;
-  message: string;
   data: Permission[];
+  message: string;
 }
 
-interface GetAllPermissionsParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  filter?: Record<string, unknown>;
-}
-
-// Get list of permissions
-export const useGetAllPermissions = (params: GetAllPermissionsParams = {}) => {
-  const { page = 1, limit = 20, search, filter } = params;
-  
-  return useQuery({
-    queryKey: ["permissions", page, limit, search, JSON.stringify(filter)],
-    queryFn: () =>
-      get({
-        url: "api/v1/user/permission",
-        params: {
-          page,
-          limit,
-          search,
-          ...filter,
-        },
-      }),
-  });
-};
-
-// Get single permission details
-export const useGetSinglePermissionDetails = (id: string) =>
-  useQuery({
-    queryKey: ["permissions", id],
-    queryFn: () =>
-      get({
-        url: `api/v1/user/permission/${id}`,
-      }),
-    enabled: !!id,
-  });
-
-// Create permission
-export const useCreatePermission = () =>
-  useMutation({
-    mutationFn: (body: CreatePermissionData) =>
-      postWithToken({
-        url: "api/v1/user/permission",
-        body,
-      }),
-  });
-
-// Update permission
-export const useUpdatePermission = () =>
-  useMutation({
-    mutationFn: ({ id, body }: { id: string; body: UpdatePermissionData }) =>
-      put({
-        url: `api/v1/user/permission/${id}`,
-        body,
-      }),
-  });
-
-// Delete permission
-export const useDeletePermission = () => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (id: string) =>
-      deleteApi({
-        url: `api/v1/user/permission/${id}`,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["permissions"] });
+// Hook to get all permissions
+export const useGetAllPermissions = () => {
+  return useQuery<PermissionsResponse, Error>({
+    queryKey: ['permissions'],
+    queryFn: async (): Promise<PermissionsResponse> => {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return {
+        success: true,
+        data: mockPermissions,
+        message: 'Permissions fetched successfully',
+      };
     },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
