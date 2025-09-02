@@ -25,6 +25,7 @@ import {
   CreditCard,
   Shield,
   UserCheck,
+  Star,
 } from "lucide-react";
 
 const navigation = [
@@ -57,6 +58,11 @@ const navigation = [
       { name: "Customers", href: "/customers", icon: Users },
       { name: "Payments", href: "/payments", icon: CreditCard },
     ],
+  },
+  {
+    name: "Reviews",
+    icon: Star,
+    href: "/reviews",
   },
   {
     name: "User Management",
@@ -125,7 +131,9 @@ export function ModernSidebar({ isCollapsed = false }: ModernSidebarProps) {
         <div
           className={cn(
             "flex items-center border-b border-gray-200 dark:border-gray-700 transition-all duration-300",
-            isCollapsed ? "justify-center p-[22px]" : "justify-center p-[22px] lg:justify-start"
+            isCollapsed
+              ? "justify-center p-[22px]"
+              : "justify-center p-[22px] lg:justify-start"
           )}
         >
           <div className="flex items-center space-x-2">
@@ -158,12 +166,14 @@ export function ModernSidebar({ isCollapsed = false }: ModernSidebarProps) {
             // Handle dropdown items
             if (item.isDropdown && item.subItems) {
               const isExpanded = expandedDropdowns.includes(item.name);
-              const hasActiveSubItem = item.subItems.some(subItem => location.pathname === subItem.href);
-              
+              const hasActiveSubItem = item.subItems.some(
+                (subItem) => location.pathname === subItem.href
+              );
+
               const toggleDropdown = () => {
-                setExpandedDropdowns(prev => 
-                  prev.includes(item.name) 
-                    ? prev.filter(name => name !== item.name)
+                setExpandedDropdowns((prev) =>
+                  prev.includes(item.name)
+                    ? prev.filter((name) => name !== item.name)
                     : [...prev, item.name]
                 );
               };
@@ -176,7 +186,9 @@ export function ModernSidebar({ isCollapsed = false }: ModernSidebarProps) {
                     className={cn(
                       "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200",
                       "hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100",
-                      isCollapsed ? "justify-center p-3" : "space-x-3 px-3 py-3",
+                      isCollapsed
+                        ? "justify-center p-3"
+                        : "space-x-3 px-3 py-3",
                       hasActiveSubItem
                         ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
                         : "text-gray-600 dark:text-gray-300"
@@ -193,7 +205,9 @@ export function ModernSidebar({ isCollapsed = false }: ModernSidebarProps) {
                     />
                     {!isCollapsed && (
                       <>
-                        <span className="lg:block hidden flex-1 text-left">{item.name}</span>
+                        <span className="lg:block hidden flex-1 text-left">
+                          {item.name}
+                        </span>
                         <ChevronRight
                           className={cn(
                             "lg:block hidden h-4 w-4 transition-transform duration-200",
@@ -203,7 +217,9 @@ export function ModernSidebar({ isCollapsed = false }: ModernSidebarProps) {
                       </>
                     )}
                     {/* Mobile always shows text */}
-                    <span className="lg:hidden flex-1 text-left">{item.name}</span>
+                    <span className="lg:hidden flex-1 text-left">
+                      {item.name}
+                    </span>
                     <ChevronRight
                       className={cn(
                         "lg:hidden h-4 w-4 transition-transform duration-200",

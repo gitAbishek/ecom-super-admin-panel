@@ -80,3 +80,13 @@ export const staffTableHeaders = [
   { title: "Joined" },
   { title: "Actions" },
 ];
+
+export const reviewTableHeaders = [
+  { title: "Review" },
+  { title: "Product" },
+  { title: "Customer" },
+  { title: "Rating" },
+  { title: "Status" },
+  { title: "Date" },
+  { title: "Actions" },
+];

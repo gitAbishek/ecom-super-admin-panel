@@ -37,7 +37,7 @@ const CustomHeaders: React.FC<CustomHeadersProps> = ({
             <p className="text-gray-600 dark:text-gray-400">{description}</p>
           </div>
         </div>
-        {onAdd && (
+        {onAdd &&  (
           <Button onClick={onAdd} className="w-fit">
             <Plus className="h-4 w-4 mr-2" />
             {buttonText}

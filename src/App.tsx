@@ -45,6 +45,8 @@ import {
   ViewPermission,
   EditPermission,
   Staff,
+  Reviews,
+  ViewReview,
   Analytics,
   Messages,
   Notifications,
@@ -163,6 +165,8 @@ function App() {
                         <Route path="/customers/view/:id" element={<ViewCustomer />} />
                         <Route path="/payments" element={<PaymentsList />} />
                         <Route path="/payments/view/:id" element={<ViewPayment />} />
+                        <Route path="/reviews" element={<Reviews />} />
+                        <Route path="/reviews/view/:id" element={<ViewReview />} />
                         <Route path="/roles" element={<Roles />} />
                         <Route path="/roles/add" element={<AddRole />} />
                         <Route path="/roles/view/:id" element={<ViewRole />} />

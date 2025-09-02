@@ -11,6 +11,8 @@ export { default as Customers } from './customers/Customers';
 export { default as ViewCustomer } from './customers/ViewCustomer';
 export { default as PaymentsList } from './payments/Payments';
 export { default as ViewPayment } from './payments/ViewPayment';
+export { default as Reviews } from './reviews/Reviews';
+export { default as ViewReview } from './reviews/ViewReview';
 export { default as Roles } from './roles/Roles';
 export { default as AddRole } from './roles/AddRole';
 export { default as ViewRole } from './roles/ViewRole';
