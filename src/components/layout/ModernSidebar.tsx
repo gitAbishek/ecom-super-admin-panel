@@ -9,20 +9,11 @@ import {
   X,
   Bell,
   Store,
-  ChevronRight,
-  Shield,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
-  {
-    name: "User Management",
-    icon: Shield,
-    isDropdown: true,
-    subItems: [
-      { name: "Roles", href: "/roles", icon: Shield },
-    ],
-  },
+  { name: "Tenants", href: "/tenants", icon: Store },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -33,7 +24,6 @@ interface ModernSidebarProps {
 
 export function ModernSidebar({ isCollapsed = false }: ModernSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [expandedDropdowns, setExpandedDropdowns] = useState<string[]>([]);
   const location = useLocation();
 
   return (
@@ -108,147 +98,6 @@ export function ModernSidebar({ isCollapsed = false }: ModernSidebarProps) {
         {/* Navigation */}
         <nav className="p-3 space-y-1 flex-1 overflow-y-auto">
           {navigation.map((item) => {
-            // Handle dropdown items
-            if (item.isDropdown && item.subItems) {
-              const isExpanded = expandedDropdowns.includes(item.name);
-              const hasActiveSubItem = item.subItems.some(
-                (subItem) => location.pathname === subItem.href
-              );
-
-              const toggleDropdown = () => {
-                setExpandedDropdowns((prev) =>
-                  prev.includes(item.name)
-                    ? prev.filter((name) => name !== item.name)
-                    : [...prev, item.name]
-                );
-              };
-
-              return (
-                <div key={item.name} className="relative">
-                  {/* Dropdown Header */}
-                  <button
-                    onClick={toggleDropdown}
-                    className={cn(
-                      "w-full flex items-center rounded-lg text-sm font-medium transition-all duration-200",
-                      "hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100",
-                      isCollapsed
-                        ? "justify-center p-3"
-                        : "space-x-3 px-3 py-3",
-                      hasActiveSubItem
-                        ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
-                        : "text-gray-600 dark:text-gray-300"
-                    )}
-                  >
-                    <item.icon
-                      className={cn(
-                        "flex-shrink-0",
-                        hasActiveSubItem
-                          ? "text-blue-600 dark:text-blue-400"
-                          : "text-gray-500 dark:text-gray-400",
-                        "h-5 w-5"
-                      )}
-                    />
-                    {!isCollapsed && (
-                      <>
-                        <span className="lg:block hidden flex-1 text-left">
-                          {item.name}
-                        </span>
-                        <ChevronRight
-                          className={cn(
-                            "lg:block hidden h-4 w-4 transition-transform duration-200",
-                            isExpanded && "rotate-90"
-                          )}
-                        />
-                      </>
-                    )}
-                    {/* Mobile always shows text */}
-                    <span className="lg:hidden flex-1 text-left">
-                      {item.name}
-                    </span>
-                    <ChevronRight
-                      className={cn(
-                        "lg:hidden h-4 w-4 transition-transform duration-200",
-                        isExpanded && "rotate-90"
-                      )}
-                    />
-                  </button>
-
-                  {/* Dropdown Items */}
-                  {isExpanded && !isCollapsed && (
-                    <div className="mt-1 ml-4 space-y-1">
-                      {item.subItems.map((subItem) => {
-                        const isSubActive = location.pathname === subItem.href;
-                        return (
-                          <Link
-                            key={subItem.name}
-                            to={subItem.href}
-                            className={cn(
-                              "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
-                              "hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100",
-                              isSubActive
-                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-l-2 border-blue-600 ml-2 pl-4"
-                                : "text-gray-600 dark:text-gray-400"
-                            )}
-                            onClick={() => setIsMobileOpen(false)}
-                          >
-                            <subItem.icon
-                              className={cn(
-                                "flex-shrink-0 h-4 w-4",
-                                isSubActive
-                                  ? "text-blue-600 dark:text-blue-400"
-                                  : "text-gray-400 dark:text-gray-500"
-                              )}
-                            />
-                            <span>{subItem.name}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Mobile dropdown items */}
-                  {isExpanded && (
-                    <div className="lg:hidden mt-1 ml-4 space-y-1">
-                      {item.subItems.map((subItem) => {
-                        const isSubActive = location.pathname === subItem.href;
-                        return (
-                          <Link
-                            key={subItem.name}
-                            to={subItem.href}
-                            className={cn(
-                              "flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-all duration-200",
-                              "hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-gray-100",
-                              isSubActive
-                                ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-l-2 border-blue-600 ml-2 pl-4"
-                                : "text-gray-600 dark:text-gray-400"
-                            )}
-                            onClick={() => setIsMobileOpen(false)}
-                          >
-                            <subItem.icon
-                              className={cn(
-                                "flex-shrink-0 h-4 w-4",
-                                isSubActive
-                                  ? "text-blue-600 dark:text-blue-400"
-                                  : "text-gray-400 dark:text-gray-500"
-                              )}
-                            />
-                            <span>{subItem.name}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Tooltip for collapsed state */}
-                  {isCollapsed && (
-                    <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white dark:text-gray-200 text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 hidden lg:block">
-                      {item.name}
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
             // Handle regular items
             const isActive = location.pathname === item.href;
             return (

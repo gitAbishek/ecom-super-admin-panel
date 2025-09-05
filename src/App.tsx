@@ -10,10 +10,10 @@ import { ModernSidebar } from "@/components/layout/ModernSidebar";
 import { Header } from "@/components/layout/Header";
 import {
   Dashboard,
-  Roles,
-  AddRole,
-  ViewRole,
-  EditRole,
+  Tenants,
+  AddTenant,
+  ViewTenant,
+  EditTenant,
   Settings,
   Notifications,
   Login,
@@ -101,11 +101,11 @@ function App() {
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         
-                        {/* Role Management Routes */}
-                        <Route path="/roles" element={<Roles />} />
-                        <Route path="/roles/add" element={<AddRole />} />
-                        <Route path="/roles/view/:id" element={<ViewRole />} />
-                        <Route path="/roles/edit/:id" element={<EditRole />} />
+                        {/* Tenant Management Routes */}
+                        <Route path="/tenants" element={<Tenants />} />
+                        <Route path="/tenants/add" element={<AddTenant />} />
+                        <Route path="/tenants/view/:id" element={<ViewTenant />} />
+                        <Route path="/tenants/edit/:id" element={<EditTenant />} />
                         
                         {/* Other Pages */}
                         <Route path="/settings" element={<Settings />} />
