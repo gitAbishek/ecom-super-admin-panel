@@ -4,8 +4,10 @@ import BaseTable from "@/components/ui/BaseTable";
 import TenantTable from "@/components/TenantTable";
 import CustomHeaders from "@/components/common/CustomHeaders";
 import CustomFilters from "@/components/common/CustomFilters";
+import StatusUpdateModal from "@/components/ui/StatusUpdateModal";
 import {
   useGetAllTenants,
+  useUpdateTenantStatus,
 } from "@/hooks/tenant.hook";
 import { showErrorMessage, showSuccessMessage } from "@/utils/toast";
 import { AlertTriangle, Building2 } from "lucide-react";
@@ -23,7 +25,11 @@ const Tenants = () => {
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [limit] = useState(5);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+
+  const { mutateAsync: updateTenantStatus, isPending: isUpdatingStatus } = useUpdateTenantStatus();
 
   // Navigate to add tenant page
   const handleAddTenant = () => {
@@ -57,6 +63,35 @@ const Tenants = () => {
   // Handle edit tenant
   const handleEditTenant = (tenant: Tenant) => {
     navigate(`/tenants/edit/${tenant._id}`);
+  };
+
+  // Handle status update
+  const handleStatusUpdate = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setShowStatusModal(true);
+  };
+
+  // Confirm status update
+  const confirmStatusUpdate = async (newStatus: string) => {
+    if (!selectedTenant) return;
+
+    try {
+      await updateTenantStatus({
+        tenantId: selectedTenant._id,
+        status: newStatus
+      });
+      showSuccessMessage("Tenant status updated successfully");
+      setShowStatusModal(false);
+      setSelectedTenant(null);
+    } catch (error) {
+      console.error('Error updating tenant status:', error);
+      showErrorMessage("Failed to update tenant status");
+    }
+  };
+
+  const handleCloseStatusModal = () => {
+    setShowStatusModal(false);
+    setSelectedTenant(null);
   };
 
   // Handle page change for pagination
@@ -136,6 +171,7 @@ const Tenants = () => {
                   data={allTenants}
                   onView={handleViewTenant}
                   onEdit={handleEditTenant}
+                  onStatusUpdate={handleStatusUpdate}
                 />
               }
             />
@@ -148,6 +184,17 @@ const Tenants = () => {
             currentPage={currentPage}
           />
         </div>
+
+        {/* Status Update Modal */}
+        <StatusUpdateModal
+          visible={showStatusModal}
+          onClose={handleCloseStatusModal}
+          handleStatusUpdate={confirmStatusUpdate}
+          title="Update Tenant Status"
+          description={`Change the status for "${selectedTenant?.name}"`}
+          currentStatus={selectedTenant?.status || ""}
+          isPending={isUpdatingStatus}
+        />
       </div>
     );
   };

@@ -54,6 +54,15 @@ export const customerTableHeaders = [
   { title: "Status" },
 ];
 
+export const roleTableHeaders = [
+  { title: "Role" },
+  { title: "Permissions" },
+  { title: "Type" },
+  { title: "Status" },
+  { title: "Created" },
+  { title: "Actions" },
+];
+
 export const permissionTableHeaders = [
   { title: "Permission" },
   { title: "Resource" },

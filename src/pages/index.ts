@@ -1,6 +1,10 @@
 // Dashboard
 export { Dashboard } from './Dashboard';
 
+// Role Management
+export { default as Roles } from './roles/Roles';
+export { default as AddRole } from './roles/AddRole';
+
 // Tenant Management
 export { default as Tenants } from './Tenants';
 export { default as AddTenant } from './tenants/AddTenant';

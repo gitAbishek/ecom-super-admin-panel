@@ -9,11 +9,13 @@ import {
   X,
   Bell,
   Store,
+  Shield,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "Tenants", href: "/tenants", icon: Store },
+  { name: "Roles", href: "/roles", icon: Shield },
   { name: "Notifications", href: "/notifications", icon: Bell },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

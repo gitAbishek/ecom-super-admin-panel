@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { get, postWithToken, put } from '@/api/client';
+import { get, patch, postWithToken, put } from '@/api/client';
 import type { 
   TenantsResponse, 
   TenantResponse, 
@@ -91,5 +91,22 @@ export const useValidateTenant = () => {
         url: `api/v1/user/tenant/validate`,
         body: data,
       }),
+  });
+};
+
+// Update tenant status
+export const useUpdateTenantStatus = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation<TenantResponse, Error, { tenantId: string; status: string }>({
+    mutationFn: ({ tenantId, status }) =>
+      patch({
+        url: `api/v1/user/tenant/update-status/${tenantId}`,
+        body: { status },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenants'] });
+      queryClient.invalidateQueries({ queryKey: ['tenant'] });
+    },
   });
 };

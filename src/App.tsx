@@ -4,12 +4,14 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ModernSidebar } from "@/components/layout/ModernSidebar";
 import { Header } from "@/components/layout/Header";
 import {
   Dashboard,
+  Roles,
+  AddRole,
   Tenants,
   AddTenant,
   ViewTenant,
@@ -18,6 +20,8 @@ import {
   Notifications,
   Login,
 } from "@/pages";
+import ViewRole from "@/pages/roles/ViewRole";
+import EditRole from "@/pages/roles/EditRole";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getCookie } from "./utils/cookie";
@@ -100,6 +104,12 @@ function App() {
                       <Routes>
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/dashboard" element={<Dashboard />} />
+                        
+                        {/* Role Management Routes */}
+                        <Route path="/roles" element={<Roles />} />
+                        <Route path="/roles/add" element={<AddRole />} />
+                        <Route path="/roles/view/:id" element={<ViewRole />} />
+                        <Route path="/roles/edit/:id" element={<EditRole />} />
                         
                         {/* Tenant Management Routes */}
                         <Route path="/tenants" element={<Tenants />} />

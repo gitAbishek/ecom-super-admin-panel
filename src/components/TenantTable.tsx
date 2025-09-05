@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Eye, Edit, Building2 } from 'lucide-react';
+import { Eye, Edit, Building2, Settings } from 'lucide-react';
 import { getValue } from '@/utils/object';
 import type { Tenant } from '@/types/tenant';
 
@@ -7,12 +7,14 @@ export interface TenantTableProps {
   data: Tenant[];
   onView: (tenant: Tenant) => void;
   onEdit: (tenant: Tenant) => void;
+  onStatusUpdate: (tenant: Tenant) => void;
 }
 
 export default function TenantTable({ 
   data, 
   onView, 
-  onEdit
+  onEdit,
+  onStatusUpdate
 }: TenantTableProps) {
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -112,6 +114,14 @@ export default function TenantTable({
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <Edit className="h-4 w-4 text-gray-500 hover:text-blue-600" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onStatusUpdate(tenant)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <Settings className="h-4 w-4 text-gray-500 hover:text-orange-600" />
               </Button>
             </div>
           </td>
